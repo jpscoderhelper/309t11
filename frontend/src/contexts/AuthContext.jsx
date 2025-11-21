@@ -96,8 +96,8 @@ export const AuthProvider = ({ children }) => {
             await fetchCurrentUser(token);
             navigate('/profile');
             } catch (err) {
-            return 'Network error while logging in';
-            }
+            return err?.message || 'Network error while logging in';
+          }
     };
 
     /**
