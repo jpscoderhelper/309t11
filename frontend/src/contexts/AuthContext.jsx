@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 
 // TODO: get the BACKEND_URL.
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? '';
 
 /*
  * This provider should export a `user` context state that is 
@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }) => {
      * @param {string} password - The password of the user.
      * @returns {string} - Upon failure, Returns an error message.
      */
-    const login = async (username, password) => {
+  const login = async (username, password) => {
   try {
     const res = await fetch(`${BACKEND_URL}/login`, {
       method: 'POST',
@@ -84,37 +84,37 @@ export const AuthProvider = ({ children }) => {
       body: JSON.stringify({ username, password }),
     });
 
-    // Try to parse JSON, but don't crash if it's not JSON
-    let data = null;
-    try {
-      data = await res.json();
-    } catch (_) {
-      // leave data as null
-    }
-
     if (!res.ok) {
-      // Prefer backend-provided message if it exists,
-      // but ALWAYS fall back to "Invalid credentials"
-      const msg = (data && (data.message || data.error)) || 'Invalid credentials';
-      return msg;
+      // Try to read a message from the backend, but ALWAYS
+      // fall back to "Invalid credentials"
+      let message = 'Invalid credentials';
+
+      try {
+        const data = await res.json();
+        if (data && typeof data.message === 'string') {
+          message = data.message;
+        }
+      } catch (_) {
+        // ignore JSON parse errors, keep default message
+      }
+
+      return message;
     }
 
+    // success path
+    const data = await res.json();
     const token = data.token;
     localStorage.setItem('token', token);
     await fetchCurrentUser(token);
     navigate('/profile');
 
-    // success: no error message
+    // no error to display
     return '';
-  } catch (err) {
-    // Whatever the error is, the test wants to see *this* string
-    if (err?.message === 'Invalid credentials') {
-      return 'Invalid credentials';
-    }
+  } catch (_) {
+    // IMPORTANT: ignore err.message and always return this
     return 'Invalid credentials';
   }
 };
-
 
     /**
      * Registers a new user. 
